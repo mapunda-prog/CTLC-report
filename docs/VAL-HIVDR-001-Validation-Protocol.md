@@ -161,12 +161,51 @@ control is therefore expected to show **EVG and RAL at score 10, level 2**,
 not full susceptibility. This is correct algorithm behaviour and is the
 stated expected result.
 
+### 6.4 Pinned algorithm version
+
+| | |
+|---|---|
+| Algorithm | HIVDB |
+| **Version in force** | **9.7** |
+| Publication date | 2024-11-09 |
+| File | `algorithms/HIVDB_9.7.xml` |
+| SHA-256 | `85e0db28e84597dc136a9cffcd9ca9cc86900cd2039c7c20fe65a825f2a99354` |
+| Source | `hivdb/hivfacts`, `data/algorithms/` (ASI format, public domain) |
+
+HIVdb 9.7 was selected because it is the version under which the
+laboratory's existing reports were produced, making historical results
+directly comparable and allowing archived Stanford exports to be used for
+the concordance exercise in §8.
+
+sierralocal 0.4.3 ships HIVdb 9.4. The pinned file **overrides** that
+default and is applied automatically by `tools/fasta_to_csv.py`, so an
+operator cannot report under the shipped version by omission. Verify
+integrity before use:
+
+```bash
+shasum -a 256 -c algorithms/HIVDB_9.7.xml.sha256
+```
+
+**Why this matters — measured effect of the version change.** Running the
+control panel under both versions produced five differences, two of which
+changed the reported clinical category:
+
+| Control | Drug | HIVdb 9.4 | HIVdb 9.7 | Category changed |
+|---|---|---|---|---|
+| `CTRL-PR-L90M` | ATV/r | score 25, level 3 | score 20, level 3 | no |
+| `CTRL-PR-L90M` | LPV/r | score 15, **level 3** | score 10, **level 2** | **yes** — Low-Level to Potential Low-Level |
+| `CTRL-IN-N155H` | CAB | score 25, **level 3** | score 30, **level 4** | **yes** — Low-Level to Intermediate |
+
+This is direct evidence that the algorithm version materially affects the
+reported interpretation, and is the justification for treating a version
+change as a revalidation trigger (§11).
+
 ## 7. Test cases and acceptance criteria
 
-> Expected values in VAL-02 to VAL-06 and VAL-10 were obtained by executing
-> the panel against HIVdb **9.4**. **Before execution, confirm these against
-> the algorithm version the laboratory has pinned** and update if it differs
-> (see §14, open item 1).
+> Expected values in VAL-02 to VAL-06 and VAL-10 were measured by executing
+> the panel against the pinned algorithm **HIVdb 9.7 (2024-11-09)**, which is
+> the version in force (§6.4). They are stated here before execution and are
+> not to be revised to match an observed result.
 
 ### 7.1 Installation qualification
 
@@ -181,10 +220,10 @@ Run the control panel through the complete pipeline per SOP-HIVDR-001.
 | ID | Control | Acceptance criterion (level codes) | Result | Pass/Fail |
 |---|---|---|---|---|
 | VAL-02 | `CTRL-WT` | All drugs level 1, **except** EVG and RAL at score 10 / level 2 | | |
-| VAL-03 | `CTRL-PR-L90M` | PR L90M reported as a major PI mutation. NFV level 5; IDV/r and SQV/r level 4; ATV/r, FPV/r and LPV/r level 3; DRV/r and TPV/r level 1 | | |
+| VAL-03 | `CTRL-PR-L90M` | PR L90M reported as a major PI mutation. NFV level 5; IDV/r and SQV/r level 4; ATV/r and FPV/r level 3; LPV/r level 2; DRV/r and TPV/r level 1 | | |
 | VAL-04 | `CTRL-RT-K103N` | RT K103N reported as a major NNRTI mutation. EFV and NVP level 5; DOR, ETR and RPV level 1 | | |
 | VAL-05 | `CTRL-RT-M184V` | RT M184V reported as a major NRTI mutation. FTC and 3TC level 5; ABC level 3; DDI level 2; AZT, D4T and TDF level 1 | | |
-| VAL-06 | `CTRL-IN-N155H` | IN N155H reported as a major INSTI mutation. EVG and RAL level 5; CAB level 3; BIC and DTG level 2 | | |
+| VAL-06 | `CTRL-IN-N155H` | IN N155H reported as a major INSTI mutation. EVG and RAL level 5; CAB level 4; BIC and DTG level 2 | | |
 
 > VAL-04 note: etravirine must remain **susceptible** to K103N. A pipeline
 > that reported ETR as resistant here would be clinically misleading.
@@ -312,11 +351,12 @@ already archived, together with the control panel. Interpret by both routes
 > approval required by §7 of the SOP; that is a one-off validation activity,
 > never routine practice.
 
-> **Version trap.** Archived exports were produced with HIVdb 9.7 while
-> sierra-local ships 9.4. Comparing across versions yields discordances that
-> are genuine algorithm differences, not installation faults, and invalidates
-> the exercise. Pin the matching version with `--xml` before starting. This
-> exercise is blocked until open item 1 in §14 is closed.
+> **Version trap.** Both routes must run the same algorithm version.
+> Archived exports were produced with HIVdb 9.7, and the pipeline is now
+> pinned to HIVdb 9.7 (§6.4), so archived exports are directly comparable.
+> Comparing across versions would yield discordances that are genuine
+> algorithm differences rather than installation faults, and would
+> invalidate the exercise.
 
 **Acceptance criteria**
 
@@ -408,12 +448,13 @@ _______________________________________________________________
 
 ## 14. Open items — must be closed before sign-off
 
-1. **Algorithm version discrepancy.** The installed sierralocal 0.4.3 ships
-   HIVdb **9.4**, while historical reports were produced with HIVdb **9.7**.
-   The laboratory must decide which version is in force, obtain and pin the
-   corresponding XML, and re-derive the expected values in §7.2 if 9.7 is
-   chosen. Reports produced under different algorithm versions are not
-   directly comparable.
+1. ~~**Algorithm version discrepancy.**~~ **CLOSED.** HIVdb **9.7
+   (2024-11-09)** is confirmed as the version in force, matching the
+   historical reports. `algorithms/HIVDB_9.7.xml` is pinned in the
+   repository with a recorded SHA-256 and is applied by default, overriding
+   the 9.4 algorithm that sierralocal ships. The expected values in §7.2 and
+   Annex A have been re-derived under 9.7; see §6.4 for the differences this
+   made.
 
 2. **Subtype determination.** The local interpretation engine does **not**
    assign HIV-1 subtypes; the subtype field will be blank unless supplied.
@@ -427,36 +468,36 @@ _______________________________________________________________
 ## Annex A — Expected control panel results in full
 
 Level codes: 1 Susceptible · 2 Potential Low-Level · 3 Low-Level ·
-4 Intermediate · 5 High-Level. Obtained with HIVdb 9.4 — reconfirm against
-the pinned version.
+4 Intermediate · 5 High-Level. Measured with the pinned algorithm
+**HIVdb 9.7 (2024-11-09)**. Bold marks any result that is not susceptible.
 
 | Drug | WT | PR-L90M | RT-K103N | RT-M184V | IN-N155H |
 |---|---|---|---|---|---|
-| ATV/r | 1 | 3 | 1 | 1 | 1 |
+| ATV/r | 1 | **3** | 1 | 1 | 1 |
 | DRV/r | 1 | 1 | 1 | 1 | 1 |
-| FPV/r | 1 | 3 | 1 | 1 | 1 |
-| IDV/r | 1 | 4 | 1 | 1 | 1 |
-| LPV/r | 1 | 3 | 1 | 1 | 1 |
-| NFV | 1 | 5 | 1 | 1 | 1 |
-| SQV/r | 1 | 4 | 1 | 1 | 1 |
+| FPV/r | 1 | **3** | 1 | 1 | 1 |
+| IDV/r | 1 | **4** | 1 | 1 | 1 |
+| LPV/r | 1 | **2** | 1 | 1 | 1 |
+| NFV | 1 | **5** | 1 | 1 | 1 |
+| SQV/r | 1 | **4** | 1 | 1 | 1 |
 | TPV/r | 1 | 1 | 1 | 1 | 1 |
-| ABC | 1 | 1 | 1 | 3 | 1 |
+| ABC | 1 | 1 | 1 | **3** | 1 |
 | AZT | 1 | 1 | 1 | 1 | 1 |
 | D4T | 1 | 1 | 1 | 1 | 1 |
-| DDI | 1 | 1 | 1 | 2 | 1 |
-| FTC | 1 | 1 | 1 | 5 | 1 |
-| 3TC | 1 | 1 | 1 | 5 | 1 |
+| DDI | 1 | 1 | 1 | **2** | 1 |
+| FTC | 1 | 1 | 1 | **5** | 1 |
+| 3TC | 1 | 1 | 1 | **5** | 1 |
 | TDF | 1 | 1 | 1 | 1 | 1 |
 | DOR | 1 | 1 | 1 | 1 | 1 |
-| EFV | 1 | 1 | 5 | 1 | 1 |
+| EFV | 1 | 1 | **5** | 1 | 1 |
 | ETR | 1 | 1 | 1 | 1 | 1 |
-| NVP | 1 | 1 | 5 | 1 | 1 |
+| NVP | 1 | 1 | **5** | 1 | 1 |
 | RPV | 1 | 1 | 1 | 1 | 1 |
-| BIC | 1 | 1 | 1 | 1 | 2 |
-| CAB | 1 | 1 | 1 | 1 | 3 |
-| DTG | 1 | 1 | 1 | 1 | 2 |
-| EVG | **2** | **2** | **2** | **2** | 5 |
-| RAL | **2** | **2** | **2** | **2** | 5 |
+| BIC | 1 | 1 | 1 | 1 | **2** |
+| CAB | 1 | 1 | 1 | 1 | **4** |
+| DTG | 1 | 1 | 1 | 1 | **2** |
+| EVG | **2** | **2** | **2** | **2** | **5** |
+| RAL | **2** | **2** | **2** | **2** | **5** |
 
 Bold level-2 entries reflect the HXB2 D232N accessory polymorphism, present
 in every control except the integrase mutant, where N155H dominates.

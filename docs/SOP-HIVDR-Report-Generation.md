@@ -74,7 +74,7 @@ No single person may both test and authorise the same report.
 | R | Version 4.6.0 or later | Version recorded in validation file |
 | Quarto | Version 1.10 or later (bundled with RStudio) | As above |
 | R packages | tidyverse, rio, janitor, quarto, yaml | As above |
-| sierralocal | Version 0.4.3 | **Algorithm XML pinned — see §6** |
+| sierralocal | Version 0.4.3 | **HIVdb 9.7 pinned — see §6** |
 | Pipeline | This repository, at a recorded commit | Commit hash recorded per run |
 | Control panel | `data/example/controls/validation_panel.fasta` | Version controlled |
 
@@ -85,14 +85,28 @@ version. Different versions can give different interpretations for the same
 sequence, so the version **must** be fixed, recorded, and printed on every
 report.
 
-1. The pinned algorithm XML is stored at a controlled path and referenced
-   with `--xml` on every run.
-2. The algorithm version and publication date are carried through to the
-   report automatically and appear in the "Algorithm" field.
-3. The algorithm **must not** be updated mid-batch, and `--forceupdate`
-   **must not** be used during routine reporting.
-4. Any change of algorithm version is a revalidation trigger (§11 of
-   VAL-HIVDR-001).
+**Version in force: HIVdb 9.7, published 2024-11-09**, pinned at
+`algorithms/HIVDB_9.7.xml`. This matches the version under which the
+laboratory's existing reports were produced.
+
+1. The pinned XML is applied **automatically**; `--xml` is needed only to
+   override it, which requires a recorded revalidation. sierralocal ships
+   HIVdb 9.4, and the pinned file overrides it, so the shipped version
+   cannot be used by omission.
+2. Confirm the file's integrity before a run if it may have been altered:
+   ```bash
+   shasum -a 256 -c algorithms/HIVDB_9.7.xml.sha256
+   ```
+3. The algorithm version and publication date are carried through to the
+   report automatically and appear in the "Algorithm" field. Check this
+   field at review (§8.8) — it is the operator's confirmation that the
+   correct version was used.
+4. The algorithm **must not** be updated mid-batch, and `--forceupdate`
+   **must not** be used during routine reporting; it fetches the newest
+   algorithm and would silently change interpretations.
+5. Any change of algorithm version is a revalidation trigger (§11 of
+   VAL-HIVDR-001). Moving from 9.4 to 9.7 changed the reported clinical
+   category for two drugs in the control panel, so this is not a formality.
 
 ## 7. Data confidentiality
 
@@ -177,9 +191,11 @@ Dates may be entered as `YYYY-MM-DD` or `M/D/YYYY`; both print as
 ```bash
 python3 tools/fasta_to_csv.py data/raw/run.fasta \
     --outdir data/raw \
-    --json-out data/processed/sierra_<run-id>.json \
-    --xml /controlled/path/HIVDB_<version>.xml
+    --json-out data/processed/sierra_<run-id>.json
 ```
+
+The pinned HIVdb 9.7 algorithm is applied automatically; the run prints
+`Algorithm: HIVDB_9.7.xml` so the operator can confirm it.
 
 This runs entirely offline and writes `sequenceSummaries.csv`,
 `resistanceSummaries.csv` and `qc_report.csv` into `data/raw/`.
@@ -335,13 +351,16 @@ Manager confirms the applicable period.
 
 ## 13. Open items before this SOP takes effect
 
-1. **Algorithm version.** The installed sierralocal ships HIVdb **9.4**,
-   while historical reports were produced with HIVdb **9.7**. Decide and
-   document which version is in force, obtain the corresponding XML, pin it,
-   and state the version here. Reports produced under different algorithm
-   versions are not directly comparable.
+1. ~~**Algorithm version.**~~ **CLOSED.** HIVdb **9.7 (2024-11-09)** is the
+   version in force, matching the laboratory's existing reports. It is
+   pinned at `algorithms/HIVDB_9.7.xml` and applied automatically (§6).
 2. **Concordance.** Complete the concordance exercise in VAL-HIVDR-001 §8
    before first clinical use.
+3. **Laboratory contact details.** Complete the three `TO BE COMPLETED`
+   fields in `config.yml`; they print verbatim on every report.
+4. **Subtype determination.** Document the laboratory's subtyping method,
+   or formally accept reporting subtype as "Not reported" (VAL-HIVDR-001
+   §14, open item 2).
 
 ## 14. Revision history
 
@@ -382,8 +401,7 @@ git rev-parse --short HEAD
 # 1. interpret locally
 python3 tools/fasta_to_csv.py data/raw/run.fasta \
     --outdir data/raw \
-    --json-out data/processed/sierra_<run-id>.json \
-    --xml /controlled/path/HIVDB_<version>.xml
+    --json-out data/processed/sierra_<run-id>.json
 
 # 2. review data/raw/qc_report.csv   <-- mandatory stop point
 

@@ -45,6 +45,13 @@ CLASS_GENE = {"PI": "PR", "NRTI": "RT", "NNRTI": "RT", "INSTI": "IN"}
 
 GENES = ["PR", "RT", "IN"]
 
+# The algorithm version in force for this laboratory. sierralocal ships an
+# older default, so the pinned file is used unless --xml overrides it; the
+# version is printed on every report, and changing it is a revalidation
+# trigger (VAL-HIVDR-001 section 11).
+PINNED_ALGORITHM = (Path(__file__).resolve().parent.parent
+                    / "algorithms" / "HIVDB_9.7.xml")
+
 # Stanford mutation columns, as (csv column, gene, mutationType).
 MUTATION_COLUMNS = [
     ("PI Major",        "PR", "Major"),
@@ -262,9 +269,10 @@ def main():
                     help="where to write the CSVs (default: data/raw)")
     ap.add_argument("--json-out",
                     help="keep the raw sierralocal JSON here (audit record)")
-    ap.add_argument("--xml",
-                    help="pin a specific HIVdb algorithm XML (recommended -- "
-                         "record the version in the validation file)")
+    ap.add_argument("--xml", default=None,
+                    help=f"HIVdb algorithm XML to interpret with. Defaults to "
+                         f"the pinned {PINNED_ALGORITHM.name}; override only "
+                         f"with a recorded revalidation.")
     ap.add_argument("--sierralocal", default="sierralocal",
                     help="path to the sierralocal executable")
     args = ap.parse_args()
@@ -273,16 +281,28 @@ def main():
         if not Path(f).is_file():
             sys.exit(f"error: no such FASTA file: {f}")
 
+    # Fall back to the pinned algorithm rather than sierralocal's bundled
+    # default, so an operator cannot silently report under the wrong version.
+    xml = Path(args.xml) if args.xml else PINNED_ALGORITHM
+    if not xml.is_file():
+        sys.exit(
+            f"error: algorithm XML not found: {xml}\n"
+            "The pinned HIVdb algorithm is required. Restore it from the "
+            "repository, or pass --xml with the version recorded in the "
+            "validation file."
+        )
+    print(f"Algorithm: {xml.name}", file=sys.stderr)
+
     outdir = Path(args.outdir)
 
     if args.json_out:
         json_path = Path(args.json_out)
         json_path.parent.mkdir(parents=True, exist_ok=True)
-        records = run_sierralocal(args.fasta, json_path, args.sierralocal, args.xml)
+        records = run_sierralocal(args.fasta, json_path, args.sierralocal, xml)
     else:
         with tempfile.TemporaryDirectory() as tmp:
             records = run_sierralocal(args.fasta, Path(tmp) / "sierra.json",
-                                      args.sierralocal, args.xml)
+                                      args.sierralocal, xml)
 
     if not records:
         sys.exit("error: sierralocal returned no sequences")

@@ -56,8 +56,7 @@ laboratory network. Requires `pip install sierralocal`.
 ```bash
 python3 tools/fasta_to_csv.py data/raw/run.fasta \
     --outdir data/raw \
-    --json-out data/processed/sierra_<run-id>.json \
-    --xml /controlled/path/HIVDB_<version>.xml   # pin the algorithm version
+    --json-out data/processed/sierra_<run-id>.json
 
 # review data/raw/qc_report.csv before continuing
 
@@ -182,9 +181,9 @@ a drug missing.
 - **Subtype is not called locally.** sierra-local does not assign HIV-1
   subtypes, so the subtype field is blank unless supplied in the `subtype`
   metadata column. A subtype in metadata overrides the export's value.
-- **Algorithm version.** sierralocal 0.4.3 ships HIVdb 9.4, while earlier
-  reports used 9.7. Pin the version the laboratory has decided on, with
-  `--xml`, and record it. This is an open item in both documents.
+- **Algorithm version.** sierralocal 0.4.3 ships HIVdb 9.4. The pipeline
+  pins **HIVdb 9.7 (2024-11-09)** instead, matching the laboratory's
+  existing reports, and applies it automatically. See `algorithms/`.
 
 ## Resistance interpretation
 
