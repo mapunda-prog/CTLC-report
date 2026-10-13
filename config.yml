@@ -1,0 +1,44 @@
+# ---------------------------------------------------------------------------
+# CTLC HIVDR report configuration
+#
+# Everything here is laboratory-level detail that is identical on every
+# report. Patient-level values come from data/raw/metadata.csv instead.
+# Edit this file rather than the template or the R scripts.
+# ---------------------------------------------------------------------------
+
+# Complete these with the laboratory's own contact details before issuing
+# reports. Use an institutional telephone and address, not a personal one:
+# this file is in version control, and the details are printed on every
+# report that leaves the laboratory.
+laboratory:
+  name: "National Public Health Laboratory"
+  contact_name: "TO BE COMPLETED"
+  phone: "TO BE COMPLETED"
+  email: "TO BE COMPLETED"
+
+instrument:
+  analyzer: "3500xL Genetic Analyzer"
+  instrument_id: "NPHL/INFL/SEQ/73"
+
+# Gene regions covered by the assay, printed in the "Test Ordered" block.
+sequence_regions:
+  PR: "10-99"
+  RT: "1-251"
+  IN: "1-263"
+
+form:
+  title: "HIV DRUG RESISTANCE REPORT FORM"
+  ministry: "MINISTRY OF HEALTH"
+  effective_date: "25/07/2022"
+  revision_no: "0"
+
+# Stanford HIVdb resistance level codes (1-5) as emitted in the
+# "<drug> Level" columns of resistanceSummaries.csv. These are the
+# algorithm's own calls and are used verbatim -- scores are displayed
+# alongside but never re-thresholded locally.
+resistance_levels:
+  1: "Susceptible"
+  2: "Potential Low-Level Resistance"
+  3: "Low-Level Resistance"
+  4: "Intermediate Resistance"
+  5: "High-Level Resistance"

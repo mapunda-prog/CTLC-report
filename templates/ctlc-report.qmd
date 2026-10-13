@@ -1,0 +1,205 @@
+---
+title: ""
+params:
+  sequence_name: ""
+  data_file: "../data/processed/report_data.csv"
+  config_file: "../config.yml"
+format:
+  docx:
+    reference-doc: reference.docx
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(rio)
+  library(yaml)
+  library(flextable)
+  library(officer)
+})
+
+source(file.path("..", "R", "drugs.R"))
+source(file.path("..", "R", "report_helpers.R"))
+
+# flextable needs a pandoc it can see before it will emit Word tables.
+if (!isTRUE(ensure_pandoc())) {
+  stop("pandoc (>= 2) not found, so the drug tables cannot be rendered. ",
+       "Run from RStudio, or put Quarto's pandoc on RSTUDIO_PANDOC.",
+       call. = FALSE)
+}
+
+cfg <- yaml::read_yaml(params$config_file)
+
+record <- import(params$data_file) %>%
+  filter(sequence_name == params$sequence_name)
+
+if (nrow(record) == 0) {
+  stop("no record for sequence_name '", params$sequence_name, "' in ",
+       params$data_file, call. = FALSE)
+}
+if (nrow(record) > 1) {
+  warning("several rows for '", params$sequence_name,
+          "'; reporting the first", call. = FALSE)
+}
+record <- record[1, ]
+```
+
+### LABORATORY INFORMATION
+
+```{r}
+#| output: asis
+lab <- cfg$laboratory
+field_lines(
+  "Name of the testing laboratory" = lab$name,
+  "Contact name"                   = lab$contact_name,
+  "Telephone"                      = lab$phone,
+  "Email"                          = lab$email
+)
+```
+
+### PATIENT AND SPECIMEN INFORMATION
+
+```{r}
+#| output: asis
+field_lines(
+  "Unique CTC ID number"      = record$sequence_name,
+  "Sex"                       = record$sex,
+  "Date of birth"             = fmt_date(record$dob),
+  "Age"                       = record$age,
+  "Specimen collection date"  = fmt_date(record$sample_collection),
+  "Specimen received date"    = fmt_date(record$sample_received),
+  "Received from (facility)"  = record$received_from,
+  "District"                  = record$district,
+  "Region"                    = record$region,
+  "Requested by"              = record$requested_by,
+  "Received by"               = record$received_by,
+  "Testing date"              = fmt_date(record$test_date),
+  "Report date"               = fmt_date(record$report_date)
+)
+```
+
+### ART HISTORY AND ASSAY DETAILS
+
+```{r}
+#| output: asis
+field_lines(
+  "ART history"        = record$art_history,
+  "Analyzer"           = cfg$instrument$analyzer,
+  "Unique instrument ID" = cfg$instrument$instrument_id,
+  "Specimen type"      = record$specimen_type,
+  "Specimen quality"   = record$specimen_quality,
+  "Pre-GART viral load" = fmt_viral_load(record$pre_gart_vl)
+)
+```
+
+{{< pagebreak >}}
+
+# HIVDR LABORATORY REPORT
+
+```{r}
+#| output: asis
+# Report the coordinates actually achieved for this sample, falling back to
+# the configured assay design only where the export gives no coordinates.
+regions <- vapply(c("PR", "RT", "IN"), function(g) {
+  start <- record[[paste0(tolower(g), "_start")]]
+  end   <- record[[paste0(tolower(g), "_end")]]
+  if (is.null(start) || is.null(end) ||
+      is.na(start) || is.na(end)) return(NA_character_)
+  sprintf("%s: %s-%s", g, start, end)
+}, character(1))
+regions <- paste(regions[!is.na(regions)], collapse = "; ")
+if (!nzchar(regions)) {
+  regions <- paste(sprintf("%s: %s", names(cfg$sequence_regions),
+                           unlist(cfg$sequence_regions)), collapse = "; ")
+}
+field_lines(
+  "Test ordered"        = "HIV DRUG RESISTANCE GENOTYPING",
+  "Sequence includes"   = regions,
+  # Prefer a subtype supplied in metadata (sierra-local does not call
+  # subtypes); fall back to the Stanford export's value.
+  "HIV-1 subtype"       = if (nzchar(blank_if_na(record$subtype))) {
+                            record$subtype
+                          } else {
+                            fmt_mutations(record$subtype_percent)
+                          },
+  "Pre-GART viral load" = fmt_viral_load(record$pre_gart_vl),
+  "Algorithm"           = sprintf("%s v%s (%s)", record$algorithm_name,
+                                  record$algorithm_version,
+                                  fmt_date(record$algorithm_date))
+)
+```
+
+```{r}
+#| label: drug-classes
+#| output: asis
+
+# Report only the classes whose gene this assay actually covered. A class
+# whose gene was never sequenced is omitted entirely and listed under
+# "Not tested" below -- printing it with blank results would read as though
+# the drugs had been tested and found susceptible.
+batch_classes <- detect_reportable_classes(record)
+
+# Two independent tests, so a class is reported only if both agree it was
+# sequenced. In a mixed batch the CSV carries columns for every gene any
+# specimen covered, so this sample's own columns may be present but empty.
+covered <- genes_for_record(record$genes)
+reportable <- Filter(function(cls) {
+  by_gene <- length(covered) == 0 || CLASS_GENE[[cls]] %in% covered
+  levels_present <- DRUGS$level_col[DRUGS$class == cls]
+  has_values <- any(vapply(levels_present, function(col) {
+    nzchar(blank_if_na(record[[col]]))
+  }, logical(1)))
+  by_gene && has_values
+}, batch_classes)
+
+for (cls in reportable) {
+  cat("\n###", DRUG_CLASSES[[cls]], "\n\n")
+
+  tbl <- drug_table(record, cls, cfg)
+  flextable::flextable_to_rmd(drug_flextable(tbl))
+  cat("\n")
+
+  for (lbl in names(CLASS_MUTATIONS[[cls]])) {
+    col <- CLASS_MUTATIONS[[cls]][[lbl]]
+    cat(sprintf("**%s:** %s\n\n", lbl, fmt_mutations(record[[col]])))
+  }
+}
+
+# State the assay's limits on the face of the report, so an absent class is
+# never mistaken for a susceptible result.
+not_tested <- setdiff(names(DRUG_CLASSES), reportable)
+if (length(not_tested)) {
+  cat("\n### NOT TESTED\n\n")
+  cat("The following drug class(es) were **not** assessed because the",
+      "corresponding gene was not sequenced in this assay. No inference",
+      "about susceptibility to these drugs can be drawn from this report.\n\n")
+  for (cls in not_tested) {
+    cat(sprintf("- %s (%s gene not sequenced)\n",
+                DRUG_CLASSES[[cls]], CLASS_GENE[[cls]]))
+  }
+  cat("\n")
+}
+```
+
+### COMMENTS
+
+```{r}
+#| output: asis
+cat(blank_if_na(record$comments), "\n\n")
+
+field_lines(
+  "Tested by"                    = record$tested_by,
+  "Authorised by"                = record$authorised_by,
+  "Date report submitted to CTLC" = fmt_date(record$submitted_to_ctlc_date),
+  "Submitted to CTLC by"          = record$submitted_to_ctlc_by
+)
+```
+
+::: {custom-style="Centered"}
+**......END OF LABORATORY REPORT......**
+:::

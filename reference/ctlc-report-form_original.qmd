@@ -1,0 +1,38 @@
+---
+title: "HIVDR-REPORT"
+author: "[lab contact name]"
+format: html
+editor: visual
+---
+
+# MINISTRY OF HEALTH
+
+![](symbol-of-tanzania-national-emblem-PYEMYC.jpg){fig-align="center" width="127"}
+
+## HIV DRUG RESISTANCE REPORT FORM
+
+### LABORATORY INFORMATION:
+
+**Name of the Testing Laboratory:** National Public Health Laboratory
+
+**Contact name:** [lab contact name] **Email:** \<[lab email]\>
+
+**Phone:** [lab telephone]
+
+### PATIENT INFORMATION:
+
+**Unique CTC ID :** xxx **Sample collection date:** xxx **Sex:** xxx **DOB:**xxx **AGE:**xx
+
+**Sample receiving date:** xxx **Health Facility Name:** xxx **District:** xxx **Region:** xxx
+
+**Requested by:** **Received by :** xxx **Testing date:**
+
+**ART History:** xxxxxxxxx
+
+**Analyzer:** 3500XL Genetic Analyzer
+
+**Unique instrument ID:** NPHL/INFL/SEQ/73
+
+**Specimen type:** xxx
+
+**Specimen Quality:** xxx **Pre-GART viral load:** xxxxx

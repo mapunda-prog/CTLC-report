@@ -1,3 +1,25 @@
+# ---------------------------------------------------------------------------
+# PATIENT DATA -- NEVER COMMIT
+#
+# Everything under data/raw and data/processed may contain identifiable
+# patient information (CTC IDs, dates of birth, viral loads). Only the
+# synthetic fixture in data/example/ is safe to track.
+# ---------------------------------------------------------------------------
+# Use dir/* (not dir/) so the .gitkeep negations below can take effect --
+# git will not descend into a directory excluded as a whole.
+data/raw/*
+data/processed/*
+output/*
+reference/quarto_training.xlsx
+
+# ...but keep the folder placeholders so the structure survives a clone
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!output/.gitkeep
+
+# macOS
+.DS_Store
+
 # History files
 .Rhistory
 .Rapp.history
@@ -39,8 +61,9 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
-# pkgdown site
-docs/
+# pkgdown site -- NOT excluded here: docs/ holds the SOP and the validation
+# protocol, which are controlled documents and must be version controlled.
+# This project does not use pkgdown.
 
 # translation temp files
 po/*~
