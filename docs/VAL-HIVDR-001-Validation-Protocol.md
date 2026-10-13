@@ -126,6 +126,29 @@ panel may be shared with an assessor.
 | `CTRL-IN-N155H` | IN N155H | Major INSTI resistance |
 | `CTRL-PRRT-ONLY` | truncated after RT | Partial-gene coverage |
 
+### 6.1.1 Coverage required of the functional panel
+
+The six engineered controls exercise the interpretation logic. For
+validation they are supplemented with clinical sequences chosen so that
+every path through the pipeline is exercised at least once — roughly
+**25–40 sequences in total**, selected deliberately rather than at random.
+For deterministic software, a sequence that repeats a path already covered
+adds no evidence.
+
+| Coverage requirement | Rationale |
+|---|---|
+| Each drug class with at least one major resistance mutation | Exercises every class |
+| Each resistance level 1–5 represented | Exercises every branch of the level mapping |
+| PR+RT+IN, PR/RT-only and integrase-only configurations | All assay designs the laboratory runs (§7.4) |
+| ≥ 1 subtype B, ≥ 1 subtype C, ≥ 1 non-B non-C | Mirrors the WHO proficiency panel rule |
+| The subtypes prevalent locally, including recombinants | Validity for the population actually tested |
+| At least one sequence with mixtures / ambiguity codes | Mixed specimens are the largest reported source of error in WHO proficiency panels |
+| APOBEC hypermutation, stop codon, short or partial sequence, insertion or deletion | Each QC gate must be shown to fire |
+| At least one sequence that **should** be rejected | Demonstrates rejection, not only acceptance |
+
+Record which sequence satisfies each row; a single sequence may satisfy
+several.
+
 ### 6.2 Synthetic patient fixture
 
 `data/example/` — three fabricated patient records exercising the complete
@@ -237,11 +260,63 @@ Local execution must agree with the Stanford reference. Published
 concordance for sierra-local is 99.997%, but **local verification is
 required**.
 
-**Method.** Select at least **20 sequences** spanning the subtypes and
-resistance patterns seen locally — ideally previously reported specimens
-with an existing Stanford website export, plus the control panel. Interpret
-by both routes **using the same algorithm version**, and compare every drug's
-level code.
+### 8.1 How many sequences
+
+The WHO/HIVResNet operational framework sets no fixed number for method
+validation. Its designation application instead requires the laboratory to
+submit "a summary of the method validation including information on the
+specimen types validated, **the number of specimens tested**, and the method
+of evaluation or reference assay used for comparison" — that is, the
+laboratory must state and **justify** its own number. The framework's
+minimum of five samples applies to the annual proficiency panel (§9), which
+assesses the whole genotyping process, not this software.
+
+The justification here rests on the nature of the system. The pipeline is
+**deterministic**: identical input yields identical output, with no reagent,
+operator or run-to-run variability. Sample size therefore governs *coverage
+of the input space*, not the precision of an estimate.
+
+With zero discordances observed in *n* comparisons, the 95% upper confidence
+bound on the true discordance rate is approximately **3/n** (the rule of
+three):
+
+| Sequences | 95% bound per sequence | Drug–sequence pairs | 95% bound per pair |
+|---|---|---|---|
+| 20 | 15% | 500 | 0.6% |
+| 50 | 6% | 1 250 | 0.24% |
+| **100** | **3%** | **2 500** | **0.12%** |
+| 300 | 1% | 7 500 | 0.04% |
+
+The 25 drug results within one sequence are **not statistically
+independent** — a single alignment error affects many drugs at once — so the
+per-sequence bound is the defensible figure and the per-pair bound is
+supporting detail only.
+
+**Requirement.** Compare **at least 100 sequences**, and in practice **every
+archived sequence for which a Stanford website export is held**. Unlike
+wet-laboratory validation this consumes no specimen, reagent or instrument
+time: it re-runs files the laboratory already holds. There is accordingly no
+justification for restricting the number. Record the number used and this
+rationale in §13.
+
+### 8.2 Method
+
+Use previously reported specimens for which the Stanford website export is
+already archived, together with the control panel. Interpret by both routes
+**using the same algorithm version** and compare every drug's level code.
+
+> Using archived exports means **no sequence leaves the laboratory network**,
+> since the comparison is against results already held. This is the
+> preferred approach. If any sequence must be submitted to the Stanford
+> website, use **de-identified sequence names** and obtain the institutional
+> approval required by §7 of the SOP; that is a one-off validation activity,
+> never routine practice.
+
+> **Version trap.** Archived exports were produced with HIVdb 9.7 while
+> sierra-local ships 9.4. Comparing across versions yields discordances that
+> are genuine algorithm differences, not installation faults, and invalidates
+> the exercise. Pin the matching version with `--xml` before starting. This
+> exercise is blocked until open item 1 in §14 is closed.
 
 **Acceptance criteria**
 
@@ -252,17 +327,14 @@ level code.
    **critical** finding and blocks release.
 3. The algorithm version used by each route is recorded and identical.
 
-> If sequences are sent to the Stanford website for this exercise, they
-> leave the laboratory network. Use **de-identified sequence names** and
-> obtain the institutional approval required by §7 of the SOP. This is a
-> one-off validation activity, not routine practice.
-
 | Metric | Criterion | Result |
 |---|---|---|
-| Sequences compared | ≥ 20 | |
+| Sequences compared | ≥ 100, or all archived | |
 | Drug–sequence comparisons | | |
+| Subtypes represented | ≥ 1 B, ≥ 1 C, ≥ 1 non-B non-C | |
 | Level-code concordance | 100% | |
 | Discordances (and category) | 0 critical | |
+| 95% upper bound on discordance (3/n) | ≤ 3% per sequence | |
 
 ## 9. External quality assessment
 
