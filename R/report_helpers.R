@@ -7,10 +7,18 @@
 # ---------------------------------------------------------------------------
 
 #' Empty string for anything absent, otherwise the value as character.
+#'
+#' The Stanford website export writes the literal string "NA" for a gene
+#' that was not genotyped -- it keeps the columns rather than omitting them,
+#' unlike the local adapter. That string means "no result", so it is treated
+#' as missing here; otherwise it could reach a report as though it were one.
+#' Stanford uses "None" for an empty mutation list, so no real value is lost.
 blank_if_na <- function(x) {
   if (length(x) == 0) return("")
   x <- as.character(x[1])
-  if (is.na(x) || !nzchar(trimws(x))) "" else trimws(x)
+  if (is.na(x)) return("")
+  x <- trimws(x)
+  if (!nzchar(x) || identical(toupper(x), "NA")) "" else x
 }
 
 #' Stanford writes "None" for an empty mutation list; show that as "None"

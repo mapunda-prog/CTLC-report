@@ -358,6 +358,53 @@ already archived, together with the control panel. Interpret by both routes
 > algorithm differences rather than installation faults, and would
 > invalidate the exercise.
 
+Run the comparison with the supplied tool, which refuses to compare files
+scored with different algorithm versions:
+
+```bash
+python3 tools/compare_concordance.py \
+    --reference data/manual_quering/resistanceSummaries.csv \
+    --test      data/raw/resistanceSummaries.csv \
+    --out       data/processed/concordance_differences.csv
+```
+
+It reports level-code concordance, flags any difference crossing the
+susceptible / non-susceptible boundary as critical, and gives the rule-of-
+three bound. Exit status is 0 only on 100% concordance.
+
+> **Encoding difference, not discordance.** The Stanford website export
+> keeps the columns for a gene it did not genotype and writes the literal
+> string `NA`; the local adapter omits those columns instead. Both mean
+> "not genotyped". The comparison tool treats them as equivalent, and the
+> reporting code treats `NA` as missing so it can never reach a report as
+> though it were a result.
+
+### 8.3 Pilot result
+
+A pilot was run on the six-sequence test panel. It is **not** sufficient
+evidence on its own — six sequences bound the discordance rate at only 50%
+per sequence — but it confirms the method and the tooling work.
+
+| | |
+|---|---|
+| Sequences | 6 |
+| Algorithm, both routes | HIVdb 10.2 (2026-04-26) |
+| Drug-level comparisons | 145 |
+| Not genotyped in either | 5 (integrase on the PR/RT-only control) |
+| Differences | **0** |
+| Level-code concordance | **100.000%** |
+| Gene coverage agreement | exact, including PR/RT-only |
+
+**Measured effect of algorithm version.** The same sequences scored under
+the pinned 9.7 and under 10.2 differed in one of 145 comparisons:
+cabotegravir against integrase N155H read Intermediate (score 30) under
+9.7 and Low-Level (score 25) under 10.2 — 10.2 restores the 9.4 behaviour.
+No difference crossed the susceptibility boundary. This is a version
+difference, not an implementation fault, and is recorded here as further
+evidence for the revalidation trigger in §11.
+
+The full exercise of §8.1 remains outstanding.
+
 **Acceptance criteria**
 
 1. **100% concordance of resistance level codes** across all drugs and

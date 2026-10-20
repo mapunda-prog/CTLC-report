@@ -45,6 +45,15 @@ check("viral load is never scientific notation",
 check("absent mutation field reads 'Not reported'",
       fmt_mutations(NA) == "Not reported")
 check("Stanford 'None' is preserved", fmt_mutations("None") == "None")
+# The Stanford website export writes the literal string "NA" for a gene it
+# did not genotype, keeping the columns rather than omitting them.
+check("Stanford's literal 'NA' is treated as missing",
+      blank_if_na("NA") == "")
+check("literal 'NA' never reaches a report as a value",
+      fmt_mutations("NA") == "Not reported")
+check("a level of 'NA' is not reported as a result",
+      level_label("NA", cfg) == "Not reported")
+check("'None' is not confused with 'NA'", blank_if_na("None") == "None")
 
 message("Resistance levels")
 check("level 1 is Susceptible", level_label(1, cfg) == "Susceptible")

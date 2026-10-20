@@ -211,6 +211,7 @@ docs/               SOP and validation protocol
 tests/smoke_test.R  regression suite, runs on the fixture
 tools/
   fasta_to_csv.py       FASTA -> local HIVdb -> CSVs (pipeline step)
+  compare_concordance.py  local vs Stanford, drug by drug (validation)
   make_test_data.py     renamed sequences + simulated metadata (testing)
   make_control_panel.py builds the validation panel  (build-time)
   make_reference_docx.py builds the Word styles      (build-time)
