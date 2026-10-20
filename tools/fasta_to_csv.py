@@ -45,12 +45,18 @@ CLASS_GENE = {"PI": "PR", "NRTI": "RT", "NNRTI": "RT", "INSTI": "IN"}
 
 GENES = ["PR", "RT", "IN"]
 
-# The algorithm version in force for this laboratory. sierralocal ships an
-# older default, so the pinned file is used unless --xml overrides it; the
-# version is printed on every report, and changing it is a revalidation
-# trigger (VAL-HIVDR-001 section 11).
+# The algorithm version in force for this laboratory.
+#
+# This is a PINNED SNAPSHOT of the current HIVdb release, not a moving
+# target: the file is fixed in the repository and never fetched at run time.
+# Adopting a newer release means replacing this constant deliberately and
+# revalidating (VAL-HIVDR-001 section 11), because the version materially
+# changes the interpretation reported to clinicians.
+#
+# sierralocal ships an older default, which this overrides. --xml overrides
+# in turn, for the version comparisons in VAL-HIVDR-001 section 8.
 PINNED_ALGORITHM = (Path(__file__).resolve().parent.parent
-                    / "algorithms" / "HIVDB_9.7.xml")
+                    / "algorithms" / "HIVDB_10.2.xml")
 
 # Stanford mutation columns, as (csv column, gene, mutationType).
 MUTATION_COLUMNS = [

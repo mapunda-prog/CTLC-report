@@ -166,16 +166,26 @@ stated expected result.
 | | |
 |---|---|
 | Algorithm | HIVDB |
-| **Version in force** | **9.7** |
-| Publication date | 2024-11-09 |
-| File | `algorithms/HIVDB_9.7.xml` |
-| SHA-256 | `85e0db28e84597dc136a9cffcd9ca9cc86900cd2039c7c20fe65a825f2a99354` |
+| **Version in force** | **10.2** |
+| Publication date | 2026-04-26 |
+| File | `algorithms/HIVDB_10.2.xml` |
+| SHA-256 | `4676d08a1dfb263e3a0a178ed886a9b68b0f380bfd162f11a52edb6d48baa339` |
 | Source | `hivdb/hivfacts`, `data/algorithms/` (ASI format, public domain) |
+| Superseded | 9.7, retained at `algorithms/HIVDB_9.7.xml` |
 
-HIVdb 9.7 was selected because it is the version under which the
-laboratory's existing reports were produced, making historical results
-directly comparable and allowing archived Stanford exports to be used for
-the concordance exercise in §8.
+HIVdb 10.2 is the current HIVdb release and the version Stanford's public
+service now applies, so local results match what a clinician or assessor
+would obtain by querying the website today.
+
+**This is a pinned snapshot, not a moving target.** The file is fixed in
+the repository and is never fetched at run time. Adopting a future release
+is a deliberate act requiring revalidation (§11); `--forceupdate` must
+never be used in routine reporting.
+
+9.7 is retained because the laboratory's historical reports were produced
+under it. Reports issued before and after this change are **not directly
+comparable**, and a historical case may be reproduced by passing
+`--xml algorithms/HIVDB_9.7.xml`.
 
 sierralocal 0.4.3 ships HIVdb 9.4. The pinned file **overrides** that
 default and is applied automatically by `tools/fasta_to_csv.py`, so an
@@ -183,27 +193,32 @@ operator cannot report under the shipped version by omission. Verify
 integrity before use:
 
 ```bash
-shasum -a 256 -c algorithms/HIVDB_9.7.xml.sha256
+shasum -a 256 -c algorithms/HIVDB_10.2.xml.sha256
 ```
 
-**Why this matters — measured effect of the version change.** Running the
-control panel under both versions produced five differences, two of which
-changed the reported clinical category:
+**Why this matters — measured effect of version changes.** The control
+panel was run under three versions. Each step changed reported results:
 
-| Control | Drug | HIVdb 9.4 | HIVdb 9.7 | Category changed |
+| Control | Drug | 9.4 | 9.7 | 10.2 (in force) |
 |---|---|---|---|---|
-| `CTRL-PR-L90M` | ATV/r | score 25, level 3 | score 20, level 3 | no |
-| `CTRL-PR-L90M` | LPV/r | score 15, **level 3** | score 10, **level 2** | **yes** — Low-Level to Potential Low-Level |
-| `CTRL-IN-N155H` | CAB | score 25, **level 3** | score 30, **level 4** | **yes** — Low-Level to Intermediate |
+| `CTRL-PR-L90M` | ATV/r | 25, level 3 | 20, level 3 | 20, level 3 |
+| `CTRL-PR-L90M` | LPV/r | 15, **level 3** | 10, **level 2** | 10, **level 2** |
+| `CTRL-IN-N155H` | CAB | 25, **level 3** | 30, **level 4** | 25, **level 3** |
+
+Moving 9.4 to 9.7 changed the reported clinical category for lopinavir/r
+and cabotegravir. Moving 9.7 to 10.2 changed it back for cabotegravir —
+one difference in 145 drug-level comparisons across the panel, with
+nothing crossing the susceptibility boundary.
 
 This is direct evidence that the algorithm version materially affects the
-reported interpretation, and is the justification for treating a version
-change as a revalidation trigger (§11).
+reported interpretation, including reversals between releases, and is the
+justification for treating a version change as a revalidation trigger
+(§11).
 
 ## 7. Test cases and acceptance criteria
 
 > Expected values in VAL-02 to VAL-06 and VAL-10 were measured by executing
-> the panel against the pinned algorithm **HIVdb 9.7 (2024-11-09)**, which is
+> the panel against the pinned algorithm **HIVdb 10.2 (2026-04-26)**, which is
 > the version in force (§6.4). They are stated here before execution and are
 > not to be revised to match an observed result.
 
@@ -223,7 +238,7 @@ Run the control panel through the complete pipeline per SOP-HIVDR-001.
 | VAL-03 | `CTRL-PR-L90M` | PR L90M reported as a major PI mutation. NFV level 5; IDV/r and SQV/r level 4; ATV/r and FPV/r level 3; LPV/r level 2; DRV/r and TPV/r level 1 | | |
 | VAL-04 | `CTRL-RT-K103N` | RT K103N reported as a major NNRTI mutation. EFV and NVP level 5; DOR, ETR and RPV level 1 | | |
 | VAL-05 | `CTRL-RT-M184V` | RT M184V reported as a major NRTI mutation. FTC and 3TC level 5; ABC level 3; DDI level 2; AZT, D4T and TDF level 1 | | |
-| VAL-06 | `CTRL-IN-N155H` | IN N155H reported as a major INSTI mutation. EVG and RAL level 5; CAB level 4; BIC and DTG level 2 | | |
+| VAL-06 | `CTRL-IN-N155H` | IN N155H reported as a major INSTI mutation. EVG and RAL level 5; CAB level 3; BIC and DTG level 2 | | |
 
 > VAL-04 note: etravirine must remain **susceptible** to K103N. A pipeline
 > that reported ETR as resistant here would be clinically misleading.
@@ -340,16 +355,27 @@ rationale in §13.
 
 ### 8.2 Method
 
-Use previously reported specimens for which the Stanford website export is
-already archived, together with the control panel. Interpret by both routes
-**using the same algorithm version** and compare every drug's level code.
+Interpret the same sequences by both routes **under the version in force
+(10.2)** and compare every drug's level code.
 
-> Using archived exports means **no sequence leaves the laboratory network**,
-> since the comparison is against results already held. This is the
-> preferred approach. If any sequence must be submitted to the Stanford
-> website, use **de-identified sequence names** and obtain the institutional
-> approval required by §7 of the SOP; that is a one-off validation activity,
-> never routine practice.
+Because the laboratory's archived exports were produced under HIVdb 9.7,
+they are **not** directly comparable now that 10.2 is in force. The
+reference side must therefore be obtained by querying the Stanford website
+afresh under 10.2.
+
+> **Submitting sequences for the reference side.** Querying Stanford sends
+> sequences outside the laboratory network, so the identifiers must be
+> removed first. `tools/make_test_data.py` does this: it rewrites every
+> header to a neutral identifier and, with `--keep-map`, retains the
+> mapping locally so results can be matched back afterwards. Submit only
+> the renamed FASTA; keep `header_map.csv` inside the laboratory, where it
+> is patient data. Obtain the institutional approval required by §7 of the
+> SOP. This is a one-off validation activity, never routine practice, and
+> routine reporting continues to run entirely offline.
+>
+> Sequences remain patient-derived material even once the identifiers are
+> stripped. Confirm the laboratory's position on sending them to a third
+> party before starting, and record it.
 
 > **Version trap.** Both routes must run the same algorithm version.
 > Archived exports were produced with HIVdb 9.7, and the pipeline is now
@@ -381,9 +407,13 @@ three bound. Exit status is 0 only on 100% concordance.
 
 ### 8.3 Pilot result
 
-A pilot was run on the six-sequence test panel. It is **not** sufficient
-evidence on its own — six sequences bound the discordance rate at only 50%
-per sequence — but it confirms the method and the tooling work.
+A pilot was run on the six-sequence test panel, with the sequences
+submitted to the Stanford website under de-identified names and the export
+compared against local interpretation. Both routes ran **HIVdb 10.2, the
+version now in force**, so this is valid evidence as far as it goes. It is
+**not** sufficient on its own: six sequences bound the discordance rate at
+only 50% per sequence, and all six derive from a single subtype B
+reference.
 
 | | |
 |---|---|
@@ -395,15 +425,8 @@ per sequence — but it confirms the method and the tooling work.
 | Level-code concordance | **100.000%** |
 | Gene coverage agreement | exact, including PR/RT-only |
 
-**Measured effect of algorithm version.** The same sequences scored under
-the pinned 9.7 and under 10.2 differed in one of 145 comparisons:
-cabotegravir against integrase N155H read Intermediate (score 30) under
-9.7 and Low-Level (score 25) under 10.2 — 10.2 restores the 9.4 behaviour.
-No difference crossed the susceptibility boundary. This is a version
-difference, not an implementation fault, and is recorded here as further
-evidence for the revalidation trigger in §11.
-
-The full exercise of §8.1 remains outstanding.
+The full exercise of §8.1 remains outstanding, and must cover the subtypes
+seen locally rather than subtype B alone.
 
 **Acceptance criteria**
 
@@ -516,7 +539,7 @@ _______________________________________________________________
 
 Level codes: 1 Susceptible · 2 Potential Low-Level · 3 Low-Level ·
 4 Intermediate · 5 High-Level. Measured with the pinned algorithm
-**HIVdb 9.7 (2024-11-09)**. Bold marks any result that is not susceptible.
+**HIVdb 10.2 (2026-04-26)**. Bold marks any result that is not susceptible.
 
 | Drug | WT | PR-L90M | RT-K103N | RT-M184V | IN-N155H |
 |---|---|---|---|---|---|
@@ -541,7 +564,7 @@ Level codes: 1 Susceptible · 2 Potential Low-Level · 3 Low-Level ·
 | NVP | 1 | 1 | **5** | 1 | 1 |
 | RPV | 1 | 1 | 1 | 1 | 1 |
 | BIC | 1 | 1 | 1 | 1 | **2** |
-| CAB | 1 | 1 | 1 | 1 | **4** |
+| CAB | 1 | 1 | 1 | 1 | **3** |
 | DTG | 1 | 1 | 1 | 1 | **2** |
 | EVG | **2** | **2** | **2** | **2** | **5** |
 | RAL | **2** | **2** | **2** | **2** | **5** |

@@ -238,8 +238,10 @@ a drug missing.
   subtypes, so the subtype field is blank unless supplied in the `subtype`
   metadata column. A subtype in metadata overrides the export's value.
 - **Algorithm version.** sierralocal 0.4.3 ships HIVdb 9.4. The pipeline
-  pins **HIVdb 9.7 (2024-11-09)** instead, matching the laboratory's
-  existing reports, and applies it automatically. See `algorithms/`.
+  pins **HIVdb 10.2 (2026-04-26)** — the current release — and applies it
+  automatically. It is a fixed snapshot, never fetched at run time;
+  adopting a newer release requires revalidation. The superseded 9.7 is
+  kept so historical cases can be reproduced. See `algorithms/`.
 
 ## Resistance interpretation
 
