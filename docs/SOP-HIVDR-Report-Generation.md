@@ -296,8 +296,19 @@ The reviewer signs as "Tested by"; the authorised signatory signs as
 3. Archive per §11: the FASTA, the sierra JSON, the three CSVs, the
    `report_data.csv`, the final reports, the run worksheet, and the pipeline
    commit hash and algorithm version.
-4. Clear `output/` and `data/raw/` of the completed batch once archived, to
-   prevent a later run mixing specimens from two batches.
+4. Archive and clear the batch in one step:
+   ```bash
+   Rscript tools/archive_batch.R <batch-id>
+   ```
+   This moves everything in `data/raw`, `data/processed` and `output` into
+   `archive/<batch-id>/` and writes a manifest. Files are moved, never
+   deleted. The working folders are left empty, so a later run cannot mix
+   specimens from two batches -- the interpretation step overwrites the two
+   Stanford CSVs but deliberately will not overwrite `metadata.csv`, so a
+   previous batch's patient details would otherwise persist.
+
+   `archive/` holds patient data and is excluded from version control.
+   Back it up according to §11.
 
 ## 9. Quality control
 

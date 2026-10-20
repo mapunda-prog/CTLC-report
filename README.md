@@ -221,10 +221,12 @@ data/
   example/          synthetic fixture              (tracked)
     controls/       HXB2-derived validation panel  (tracked)
 output/             finished reports               (gitignored)
+archive/            archived batches               (gitignored)
 docs/               SOP, validation protocol, job aid, install guide
 tests/smoke_test.R  regression suite, runs on the fixture
 tools/
   check_setup.R         verifies this machine can run the pipeline
+  archive_batch.R       archives a finished batch, clears for the next
   fasta_to_csv.py       FASTA -> local HIVdb -> CSVs (pipeline step)
   compare_concordance.py  local vs Stanford, drug by drug (validation)
   make_test_data.py     renamed sequences + simulated metadata (testing)

@@ -25,6 +25,10 @@ data/processed/*
 
 output/*
 !output/.gitkeep
+
+# Archived batches -- finished reports and the inputs that produced them.
+archive/
+
 reference/quarto_training.xlsx
 
 # macOS

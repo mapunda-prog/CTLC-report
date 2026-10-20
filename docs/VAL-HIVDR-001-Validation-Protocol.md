@@ -368,19 +368,28 @@ they are **not** directly comparable now that 10.2 is in force. The
 reference side must therefore be obtained by querying the Stanford website
 afresh under 10.2.
 
-> **Submitting sequences for the reference side.** Querying Stanford sends
-> sequences outside the laboratory network, so the identifiers must be
-> removed first. `tools/make_test_data.py` does this: it rewrites every
-> header to a neutral identifier and, with `--keep-map`, retains the
-> mapping locally so results can be matched back afterwards. Submit only
-> the renamed FASTA; keep `header_map.csv` inside the laboratory, where it
-> is patient data. Obtain the institutional approval required by §7 of the
-> SOP. This is a one-off validation activity, never routine practice, and
-> routine reporting continues to run entirely offline.
+> **Submitting sequences for the reference side — laboratory position.**
+> The CTC ID is submitted unchanged, as it is in routine manual querying.
+> The laboratory's position is that the CTC ID is a coded identifier: the
+> key linking it to an individual is held by the Care and Treatment Clinic,
+> not by the laboratory, so the laboratory cannot re-identify a client from
+> it. Sequences are therefore submitted under their CTC IDs and results
+> matched back directly, with no renaming step.
 >
-> Sequences remain patient-derived material even once the identifiers are
-> stripped. Confirm the laboratory's position on sending them to a third
-> party before starting, and record it.
+> Recorded so an assessor can see the decision and its basis. Two points
+> for the Quality Manager to confirm and minute alongside it:
+>
+> 1. A coded identifier is generally still treated as personal data where a
+>    re-identification key exists anywhere, even when the holder of the data
+>    cannot use it. Confirm the national and institutional position.
+> 2. The CTC ID appears to encode region, district and facility in its
+>    leading groups, which narrows a record to a facility even without the
+>    key. Confirm this is acceptable for onward transmission.
+>
+> If either answer changes the position, `tools/make_test_data.py` can
+> rename headers and keep the mapping locally (`--keep-map`), so the
+> alternative needs no new tooling. Routine reporting is unaffected either
+> way: it runs entirely offline and sends nothing.
 
 > **Version trap.** Both routes must run the same algorithm version.
 > Archived exports were produced with HIVdb 9.7, and the pipeline is now

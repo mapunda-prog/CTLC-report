@@ -14,9 +14,21 @@ Algorithm in force: **HIVdb 10.2** · Run everything from the project folder
 Rscript tools/check_setup.R      # must say READY
 Rscript tests/smoke_test.R       # all checks must pass
 git rev-parse --short HEAD       # record this on the worksheet
+ls data/raw output               # must contain only .gitkeep
 ```
 
-**If either fails, stop. Do not report patients.** See `docs/INSTALL.md`.
+**If either check fails, stop. Do not report patients.** See
+`docs/INSTALL.md`.
+
+**If the working folders are not empty, archive the previous batch first:**
+
+```bash
+Rscript tools/archive_batch.R <previous-batch-id>
+```
+
+Starting on top of an old batch is how specimens get mixed — the two
+Stanford CSVs are overwritten but `metadata.csv` is not, so yesterday's
+patient details would sit beside today's sequences.
 
 ---
 
@@ -126,8 +138,12 @@ deviation, and check the algorithm version first.
 1. Release reports through the approved route.
 2. Archive: the FASTA, the sierra JSON, the three CSVs, `report_data.csv`,
    the reports, the worksheet, the commit hash and algorithm version.
-3. **Clear `data/raw/` and `output/` of the finished batch** so the next
-   run cannot mix specimens.
+3. **Archive and clear the batch** so the next run cannot mix specimens:
+   ```bash
+   Rscript tools/archive_batch.R <batch-id>
+   ```
+   Everything moves to `archive/<batch-id>/` with a manifest. Nothing is
+   deleted. Back the archive up per SOP §11.
 
 ---
 
