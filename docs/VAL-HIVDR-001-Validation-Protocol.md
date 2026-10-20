@@ -81,6 +81,8 @@ Consensus FASTA  ──►  sierralocal (offline HIVdb)  ──►  sierra JSON
 | D5 | A sequence without metadata still produces a report, with a warning | Prevents a patient silently vanishing from a batch |
 | D6 | The algorithm version is pinned and printed on every report | Traceability and comparability |
 | D7 | Drug results are presented as ruled tables with a shaded header, and non-susceptible interpretations are bold | Each drug stays tied to its score and interpretation in print; actionable results are findable at a glance |
+| D8 | A results summary at the head of the results page lists drugs at low-level resistance and above | The actionable finding is reachable without reading four tables. The per-class tables remain the full record |
+| D9 | A descriptive field with no value is marked with an em dash; a signature line is left as blank space | Distinguishes "not recorded" from "to be completed by hand", and prevents a truncated form being mistaken for a complete one. Drug results are never marked this way |
 
 ## 4. Risk assessment
 
@@ -303,6 +305,9 @@ Run the control panel through the complete pipeline per SOP-HIVDR-001.
 |---|---|---|---|---|
 | VAL-26 | Open a rendered report in the laboratory's word processor | Each drug class appears as a ruled table with a shaded, bold header row; every drug is on its own ruled row with its score and interpretation | | |
 | VAL-27 | Print a report in black and white | All table rules and text legible; non-susceptible interpretations visibly bold; header repeats on any table split across pages | | |
+| VAL-28 | Compare the results summary against the per-class tables on the same report | Every drug at low-level resistance or above appears in the summary under the same level; no drug appears in one and not the other | | |
+| VAL-29 | Report for a fully susceptible specimen | Summary states no resistance detected; no drug is listed | | |
+| VAL-30 | Report for a partial-gene specimen | Summary covers only the classes tested; the untested class appears under NOT TESTED | | |
 
 The suite covers formatting, resistance-level mapping, drug registry
 integrity, gene-coverage logic and the pipeline on the synthetic fixture. It
@@ -459,7 +464,7 @@ documented.
 
 The system is fit for clinical use when **all** hold:
 
-1. All test cases VAL-01 to VAL-27 pass.
+1. All test cases VAL-01 to VAL-30 pass.
 2. Concordance (§8) meets its criteria.
 3. All critical risks in §4 have a verified control.
 4. SOP-HIVDR-001 is approved and in force.

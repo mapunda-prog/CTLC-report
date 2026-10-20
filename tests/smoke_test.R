@@ -139,6 +139,49 @@ if (requireNamespace("flextable", quietly = TRUE)) {
         !".level" %in% ft$col_keys)
 }
 
+message("Results summary")
+all_classes <- names(DRUG_CLASSES)
+grouped <- resistance_by_level(rec, all_classes, cfg)
+# Rebuild independently from the drug tables: the summary must never
+# disagree with the detail tables it summarises.
+from_tables <- list()
+for (cls in all_classes) {
+  tb <- drug_table(rec, cls, cfg)
+  for (i in seq_len(nrow(tb))) {
+    if (!is.na(tb$.level[i]) && tb$.level[i] >= 3) {
+      lab <- tb$Interpretation[i]
+      abbr <- sub(".*\\(([^)]+)\\)$", "\\1", tb$Drug[i])
+      from_tables[[lab]] <- c(from_tables[[lab]], abbr)
+    }
+  }
+}
+check("summary lists the same levels as the drug tables",
+      setequal(names(grouped), names(from_tables)))
+check("summary lists the same drugs as the drug tables",
+      all(vapply(names(grouped), function(l) {
+        setequal(grouped[[l]], from_tables[[l]])
+      }, logical(1))))
+check("summary excludes susceptible and potential low-level drugs",
+      !any(c("Susceptible", "Potential Low-Level Resistance")
+           %in% names(grouped)))
+
+susceptible_rec <- rec
+for (col in DRUGS$level_col) susceptible_rec[[col]] <- 1L
+check("a fully susceptible record yields an empty summary",
+      length(resistance_by_level(susceptible_rec, all_classes, cfg)) == 0)
+
+message("Form tables")
+cell <- function(ft) as.character(ft$body$dataset$v1[[1]])
+check("a signature field stays blank for hand completion",
+      identical(cell(info_flextable(c("Signed" = ""), ncol = 1,
+                                    blank_fields = "Signed")), ""))
+check("a missing field is marked absent rather than left blank",
+      identical(cell(info_flextable(c("X" = NA), ncol = 1)), "—"))
+check("a present value is shown unchanged",
+      identical(cell(info_flextable(c("X" = "Female"), ncol = 1)), "Female"))
+check("the form table never prints the string 'NA'",
+      !identical(cell(info_flextable(c("X" = "NA"), ncol = 1)), "NA"))
+
 message("\nNegative-score regression")
 # The legacy Python script returned no label at all for negative scores,
 # so a susceptible drug printed with a bare number and no interpretation.

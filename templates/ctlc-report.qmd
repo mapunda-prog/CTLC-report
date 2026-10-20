@@ -49,52 +49,57 @@ if (nrow(record) > 1) {
 record <- record[1, ]
 ```
 
-### LABORATORY INFORMATION
-
 ```{r}
-#| output: asis
+#| label: laboratory-information
 lab <- cfg$laboratory
-field_lines(
-  "Name of the testing laboratory" = lab$name,
-  "Contact name"                   = lab$contact_name,
-  "Telephone"                      = lab$phone,
-  "Email"                          = lab$email
-)
+section_bar("LABORATORY INFORMATION")
 ```
 
-### PATIENT AND SPECIMEN INFORMATION
-
 ```{r}
-#| output: asis
-field_lines(
-  "Unique CTC ID number"      = record$sequence_name,
-  "Sex"                       = record$sex,
-  "Date of birth"             = fmt_date(record$dob),
-  "Age"                       = record$age,
-  "Specimen collection date"  = fmt_date(record$sample_collection),
-  "Specimen received date"    = fmt_date(record$sample_received),
-  "Received from (facility)"  = record$received_from,
-  "District"                  = record$district,
-  "Region"                    = record$region,
-  "Requested by"              = record$requested_by,
-  "Received by"               = record$received_by,
-  "Testing date"              = fmt_date(record$test_date),
-  "Report date"               = fmt_date(record$report_date)
-)
+info_flextable(c(
+  "Testing laboratory" = lab$name,
+  "Contact name"       = lab$contact_name,
+  "Telephone"          = lab$phone,
+  "Email"              = lab$email
+), ncol = 2)
 ```
 
-### ART HISTORY AND ASSAY DETAILS
+```{r}
+section_bar("PATIENT AND SPECIMEN INFORMATION")
+```
 
 ```{r}
-#| output: asis
-field_lines(
-  "ART history"        = record$art_history,
-  "Analyzer"           = cfg$instrument$analyzer,
-  "Unique instrument ID" = cfg$instrument$instrument_id,
-  "Specimen type"      = record$specimen_type,
-  "Specimen quality"   = record$specimen_quality,
-  "Pre-GART viral load" = fmt_viral_load(record$pre_gart_vl)
-)
+info_flextable(c(
+  "Unique CTC ID number" = record$sequence_name,
+  "Sex"                  = record$sex,
+  "Date of birth"        = fmt_date(record$dob),
+  "Age"                  = record$age,
+  "Collection date"      = fmt_date(record$sample_collection),
+  "Received date"        = fmt_date(record$sample_received),
+  "Facility"             = record$received_from,
+  "District"             = record$district,
+  "Region"               = record$region,
+  "Requested by"         = record$requested_by,
+  "Received by"          = record$received_by,
+  "Testing date"         = fmt_date(record$test_date),
+  "Report date"          = fmt_date(record$report_date),
+  "Reported by"          = record$reported_by
+), ncol = 2)
+```
+
+```{r}
+section_bar("ART HISTORY AND ASSAY DETAILS")
+```
+
+```{r}
+info_flextable(c(
+  "ART history"          = record$art_history,
+  "Pre-GART viral load"  = fmt_viral_load(record$pre_gart_vl),
+  "Specimen type"        = record$specimen_type,
+  "Specimen quality"     = record$specimen_quality,
+  "Analyzer"             = cfg$instrument$analyzer,
+  "Instrument ID"        = cfg$instrument$instrument_id
+), ncol = 2)
 ```
 
 {{< pagebreak >}}
@@ -117,57 +122,79 @@ if (!nzchar(regions)) {
   regions <- paste(sprintf("%s: %s", names(cfg$sequence_regions),
                            unlist(cfg$sequence_regions)), collapse = "; ")
 }
-field_lines(
+# Prefer a subtype supplied in metadata (sierra-local does not call
+# subtypes); fall back to the Stanford export's value.
+subtype_text <- if (nzchar(blank_if_na(record$subtype))) {
+  record$subtype
+} else {
+  fmt_mutations(record$subtype_percent)
+}
+```
+
+```{r}
+info_flextable(c(
   "Test ordered"        = "HIV DRUG RESISTANCE GENOTYPING",
   "Sequence includes"   = regions,
-  # Prefer a subtype supplied in metadata (sierra-local does not call
-  # subtypes); fall back to the Stanford export's value.
-  "HIV-1 subtype"       = if (nzchar(blank_if_na(record$subtype))) {
-                            record$subtype
-                          } else {
-                            fmt_mutations(record$subtype_percent)
-                          },
+  "HIV-1 subtype"       = subtype_text,
   "Pre-GART viral load" = fmt_viral_load(record$pre_gart_vl),
   "Algorithm"           = sprintf("%s v%s (%s)", record$algorithm_name,
                                   record$algorithm_version,
                                   fmt_date(record$algorithm_date))
-)
+), ncol = 1)
+```
+
+```{r}
+#| label: results-summary
+# The actionable finding, so a clinician does not have to read four tables
+# to reach it. Levels 3-5 only; the per-class tables below are the full
+# record and remain authoritative.
+batch_classes <- detect_reportable_classes(record)
+covered <- genes_for_record(record$genes)
+reportable <- Filter(function(cls) {
+  by_gene <- length(covered) == 0 || CLASS_GENE[[cls]] %in% covered
+  lv <- DRUGS$level_col[DRUGS$class == cls]
+  by_gene && any(vapply(lv, function(c) nzchar(blank_if_na(record[[c]])),
+                        logical(1)))
+}, batch_classes)
+
+section_bar("RESULTS SUMMARY")
+```
+
+```{r}
+summary_flextable(record, reportable, cfg)
+```
+
+```{r}
+#| output: asis
+cat("\nDrugs predicted to retain activity are listed as Susceptible in the",
+    "tables below. This summary covers low-level resistance and above.\n\n")
 ```
 
 ```{r}
 #| label: drug-classes
 #| output: asis
 
-# Report only the classes whose gene this assay actually covered. A class
-# whose gene was never sequenced is omitted entirely and listed under
-# "Not tested" below -- printing it with blank results would read as though
-# the drugs had been tested and found susceptible.
-batch_classes <- detect_reportable_classes(record)
-
-# Two independent tests, so a class is reported only if both agree it was
-# sequenced. In a mixed batch the CSV carries columns for every gene any
-# specimen covered, so this sample's own columns may be present but empty.
-covered <- genes_for_record(record$genes)
-reportable <- Filter(function(cls) {
-  by_gene <- length(covered) == 0 || CLASS_GENE[[cls]] %in% covered
-  levels_present <- DRUGS$level_col[DRUGS$class == cls]
-  has_values <- any(vapply(levels_present, function(col) {
-    nzchar(blank_if_na(record[[col]]))
-  }, logical(1)))
-  by_gene && has_values
-}, batch_classes)
-
+# `reportable` is determined in the results-summary chunk above, using two
+# independent tests so a class is reported only if both agree its gene was
+# sequenced. A class whose gene was never sequenced is omitted entirely and
+# listed under "Not tested" below -- printing it with blank results would
+# read as though the drugs had been tested and found susceptible.
 for (cls in reportable) {
-  cat("\n###", DRUG_CLASSES[[cls]], "\n\n")
+  cat("\n")
+  flextable::flextable_to_rmd(section_bar(DRUG_CLASSES[[cls]]))
+  cat("\n")
 
   tbl <- drug_table(record, cls, cfg)
   flextable::flextable_to_rmd(drug_flextable(tbl))
   cat("\n")
 
-  for (lbl in names(CLASS_MUTATIONS[[cls]])) {
-    col <- CLASS_MUTATIONS[[cls]][[lbl]]
-    cat(sprintf("**%s:** %s\n\n", lbl, fmt_mutations(record[[col]])))
-  }
+  muts <- CLASS_MUTATIONS[[cls]]
+  pairs <- stats::setNames(
+    vapply(unname(muts), function(col) fmt_mutations(record[[col]]),
+           character(1)),
+    names(muts))
+  flextable::flextable_to_rmd(info_flextable(pairs, ncol = 1))
+  cat("\n")
 }
 
 # State the assay's limits on the face of the report, so an absent class is
@@ -186,18 +213,30 @@ if (length(not_tested)) {
 }
 ```
 
-### COMMENTS
+```{r}
+section_bar("COMMENTS")
+```
 
 ```{r}
-#| output: asis
-cat(blank_if_na(record$comments), "\n\n")
+info_flextable(c("Comments" = record$comments), ncol = 1)
+```
 
-field_lines(
-  "Tested by"                    = record$tested_by,
-  "Authorised by"                = record$authorised_by,
-  "Date report submitted to CTLC" = fmt_date(record$submitted_to_ctlc_date),
-  "Submitted to CTLC by"          = record$submitted_to_ctlc_by
-)
+```{r}
+section_bar("AUTHORISATION")
+```
+
+```{r}
+# Signature lines are left blank deliberately: the report is not valid
+# until it has been signed, and a pre-filled signature field would
+# undermine that (SOP-HIVDR-001 section 8.8).
+info_flextable(c(
+  "Tested by"            = record$tested_by,
+  "Signature / date"     = "",
+  "Authorised by"        = record$authorised_by,
+  "Signature / date"     = "",
+  "Submitted to CTLC by" = record$submitted_to_ctlc_by,
+  "Date submitted"       = fmt_date(record$submitted_to_ctlc_date)
+), ncol = 2, blank_fields = "Signature / date")
 ```
 
 ::: {custom-style="Centered"}

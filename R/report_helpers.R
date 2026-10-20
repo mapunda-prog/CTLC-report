@@ -110,6 +110,147 @@ ensure_pandoc <- function() {
 }
 
 
+#' Shared border for every table on the report.
+report_rule <- function() officer::fp_border(color = "black", width = 0.5)
+
+
+#' Lay out label/value pairs as a bordered form table.
+#'
+#' Replaces a run of "Label: value" paragraphs, which read as a wall of
+#' text and leave a dangling colon wherever a field is blank. In a ruled
+#' table an empty cell is visibly an empty field, and the values align.
+#'
+#' @param pairs named character vector or list: names are labels
+#' @param ncol number of label/value column pairs across the page
+#' @param blank_fields labels to leave as empty space rather than marking
+#'   absent -- lines meant to be completed by hand, such as a signature
+info_flextable <- function(pairs, ncol = 2, font = "Times New Roman",
+                           size = 10, blank_fields = character()) {
+  labels <- names(pairs)
+  values <- vapply(pairs, blank_if_na, character(1), USE.NAMES = FALSE)
+
+  # An em dash reads as "recorded as absent" rather than leaving the reader
+  # to wonder whether the form is truncated. Used for descriptive fields
+  # only -- never for a drug result, where absence must stay unmarked.
+  # Fields named in blank_fields are left as space to write in.
+  fill <- !nzchar(values) & !(labels %in% blank_fields)
+  values[fill] <- "—"
+
+  pad <- (-length(labels)) %% ncol
+  if (pad) {
+    labels <- c(labels, rep("", pad))
+    values <- c(values, rep("", pad))
+  }
+
+  rows <- length(labels) %/% ncol
+  cells <- list()
+  for (j in seq_len(ncol)) {
+    idx <- seq(j, by = ncol, length.out = rows)
+    cells[[paste0("l", j)]] <- labels[idx]
+    cells[[paste0("v", j)]] <- values[idx]
+  }
+  df <- as.data.frame(cells, stringsAsFactors = FALSE)
+
+  ft <- flextable::flextable(df)
+  ft <- flextable::delete_part(ft, part = "header")
+  ft <- flextable::font(ft, fontname = font, part = "all")
+  ft <- flextable::fontsize(ft, size = size, part = "all")
+  ft <- flextable::border_outer(ft, part = "all", border = report_rule())
+  ft <- flextable::border_inner_h(ft, part = "all", border = report_rule())
+  ft <- flextable::border_inner_v(ft, part = "all", border = report_rule())
+  ft <- flextable::padding(ft, padding.top = 1.5, padding.bottom = 1.5,
+                           padding.left = 3, padding.right = 3, part = "all")
+
+  for (j in seq_len(ncol)) {
+    lab <- paste0("l", j)
+    ft <- flextable::bold(ft, j = lab)
+    ft <- flextable::bg(ft, j = lab, bg = "#F2F2F2")
+    ft <- flextable::width(ft, j = lab, width = 1.55 * 2 / ncol)
+    ft <- flextable::width(ft, j = paste0("v", j), width = 1.45 * 2 / ncol)
+  }
+  flextable::fix_border_issues(ft)
+}
+
+
+#' A shaded bar used as a section heading.
+section_bar <- function(text, font = "Times New Roman", size = 11) {
+  df <- data.frame(x = text, stringsAsFactors = FALSE)
+  ft <- flextable::flextable(df)
+  ft <- flextable::delete_part(ft, part = "header")
+  ft <- flextable::font(ft, fontname = font, part = "all")
+  ft <- flextable::fontsize(ft, size = size, part = "all")
+  ft <- flextable::bold(ft)
+  ft <- flextable::bg(ft, bg = "#D9D9D9")
+  ft <- flextable::border_outer(ft, part = "all", border = report_rule())
+  ft <- flextable::padding(ft, padding.top = 2, padding.bottom = 2,
+                           padding.left = 4, part = "all")
+  ft <- flextable::width(ft, j = "x", width = 6.0)
+  flextable::fix_border_issues(ft)
+}
+
+
+#' Group the reportable drugs by resistance level.
+#'
+#' @return named list of character vectors, level label -> drug abbreviations
+resistance_by_level <- function(record, reportable, cfg) {
+  drugs <- DRUGS[DRUGS$class %in% reportable, ]
+  out <- list()
+  for (i in seq_len(nrow(drugs))) {
+    lvl <- suppressWarnings(
+      as.integer(blank_if_na(record[[drugs$level_col[i]]])))
+    if (is.na(lvl) || lvl <= 2) next          # 1-2 are effectively active
+    label <- cfg$resistance_levels[[as.character(lvl)]]
+    if (is.null(label)) next
+    # Abbreviation only -- "atazanavir/r (ATV/r)" becomes "ATV/r".
+    abbr <- sub(".*\\(([^)]+)\\)$", "\\1", drugs$label[i])
+    out[[label]] <- c(out[[label]], abbr)
+  }
+  # Most severe first.
+  order_by <- c("High-Level Resistance", "Intermediate Resistance",
+                "Low-Level Resistance")
+  out[intersect(order_by, names(out))]
+}
+
+
+#' The results summary printed at the head of the results page.
+#'
+#' Gives the clinician the actionable finding without reading four tables.
+#' Only levels 3-5 are listed: those are the drugs whose use is in question.
+#' The per-class tables below remain the full record.
+summary_flextable <- function(record, reportable, cfg,
+                              font = "Times New Roman", size = 11) {
+  grouped <- resistance_by_level(record, reportable, cfg)
+
+  if (length(grouped) == 0) {
+    rows <- data.frame(
+      level = "No resistance detected",
+      drugs = paste("All drugs tested are predicted susceptible or of",
+                    "potential low-level resistance only."),
+      stringsAsFactors = FALSE)
+  } else {
+    rows <- data.frame(
+      level = names(grouped),
+      drugs = vapply(grouped, paste, character(1), collapse = ", "),
+      stringsAsFactors = FALSE, row.names = NULL)
+  }
+
+  ft <- flextable::flextable(rows)
+  ft <- flextable::delete_part(ft, part = "header")
+  ft <- flextable::font(ft, fontname = font, part = "all")
+  ft <- flextable::fontsize(ft, size = size, part = "all")
+  ft <- flextable::bold(ft, j = "level")
+  ft <- flextable::bg(ft, j = "level", bg = "#F2F2F2")
+  ft <- flextable::border_outer(ft, part = "all", border = report_rule())
+  ft <- flextable::border_inner_h(ft, part = "all", border = report_rule())
+  ft <- flextable::border_inner_v(ft, part = "all", border = report_rule())
+  ft <- flextable::padding(ft, padding.top = 2, padding.bottom = 2,
+                           padding.left = 4, padding.right = 4, part = "all")
+  ft <- flextable::width(ft, j = "level", width = 2.0)
+  ft <- flextable::width(ft, j = "drugs", width = 4.0)
+  flextable::fix_border_issues(ft)
+}
+
+
 #' Render one drug-class table as a Word table.
 #'
 #' flextable writes borders and shading directly onto every cell, rather
