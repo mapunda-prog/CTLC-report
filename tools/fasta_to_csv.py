@@ -64,6 +64,17 @@ MUTATION_COLUMNS = [
 
 NONE = "None"
 
+# Every column data_prep.R recognises, in report order. Used to emit a
+# metadata template pre-filled with the sequence names from the run.
+METADATA_COLUMNS = [
+    "sequence_name", "sex", "dob", "age", "sample_collection",
+    "sample_received", "received_from", "district", "region",
+    "requested_by", "received_by", "pre_gart_vl", "specimen_type",
+    "specimen_quality", "art_history", "subtype", "comments", "test_date",
+    "tested_by", "authorised_by", "report_date", "reported_by",
+    "submitted_to_ctlc_date", "submitted_to_ctlc_by",
+]
+
 
 def run_sierralocal(fasta_paths, json_out, sierralocal="sierralocal", xml=None):
     """Interpret the FASTA files locally and return the parsed JSON."""
@@ -250,6 +261,33 @@ def build_rows(records):
     return seq_rows, res_rows, qc_rows
 
 
+def write_metadata_template(path, names, overwrite=False):
+    """Write a metadata.csv skeleton with the sequence names already filled.
+
+    Transcribing CTC IDs by hand is the easiest way to break the join
+    between a result and its patient, so the names are carried straight
+    across from the FASTA. Every other field is left blank for the
+    laboratory to complete.
+
+    Refuses to overwrite an existing file: that file may hold the patient
+    details someone has already typed in.
+    """
+    if path.exists() and not overwrite:
+        print(f"  kept existing {path} (use --force-metadata-template to "
+              f"replace it)", file=sys.stderr)
+        return False
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=METADATA_COLUMNS)
+        writer.writeheader()
+        for name in names:
+            writer.writerow({"sequence_name": name})
+    print(f"  wrote {path} -- {len(names)} row(s), patient fields blank",
+          file=sys.stderr)
+    return True
+
+
 def write_csv(path, rows):
     if not rows:
         sys.exit(f"error: nothing to write to {path}")
@@ -275,6 +313,15 @@ def main():
                          f"with a recorded revalidation.")
     ap.add_argument("--sierralocal", default="sierralocal",
                     help="path to the sierralocal executable")
+    ap.add_argument("--metadata-template", action="store_true",
+                    help="also write a metadata.csv skeleton into --outdir "
+                         "with the sequence names filled in and every "
+                         "patient field blank. Useful for testing "
+                         "interpretation, and for starting a real batch "
+                         "without transcribing CTC IDs by hand.")
+    ap.add_argument("--force-metadata-template", action="store_true",
+                    help="replace an existing metadata.csv when writing the "
+                         "template (destroys any details already entered)")
     args = ap.parse_args()
 
     for f in args.fasta:
@@ -330,8 +377,18 @@ def main():
         print(f"  REVIEW  {row['Sequence Name']}: {row['QC Notes']}",
               file=sys.stderr)
 
+    if args.metadata_template:
+        write_metadata_template(outdir / "metadata.csv", names,
+                                overwrite=args.force_metadata_template)
+
     if not (outdir / "metadata.csv").exists():
-        print(f"\nnext: add {outdir}/metadata.csv, then run "
+        print(f"\nInterpretation is complete and can be reviewed in "
+              f"{outdir}/resistanceSummaries.csv and qc_report.csv.\n"
+              f"To build patient reports, add {outdir}/metadata.csv "
+              f"(--metadata-template starts one), then run "
+              f"Rscript R/data_prep.R", file=sys.stderr)
+    else:
+        print(f"\nnext: complete {outdir}/metadata.csv, then run "
               "Rscript R/data_prep.R", file=sys.stderr)
 
     sys.exit(2 if flagged else 0)

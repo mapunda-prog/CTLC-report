@@ -70,6 +70,60 @@ is treated as a description and ignored.
 `fasta_to_csv.py` exits `0` if all sequences passed QC, `2` if any were
 flagged for review, and `1` on failure.
 
+### Testing the whole pipeline with simulated data
+
+To exercise every step without using real patient information, build a test
+dataset from any FASTA. Sequences are renamed `test_seq_001`, `test_seq_002`
+… and a matching `metadata.csv` of **entirely fabricated** patient details
+is generated alongside:
+
+```bash
+python3 tools/make_test_data.py my_sequences.fasta --outdir data/test_data
+python3 tools/fasta_to_csv.py data/test_data/test_sequences.fasta --outdir data/test_data
+Rscript -e 'source("R/data_prep.R");     prepare_report_data("data/test_data","data/test_data")'
+Rscript -e 'source("R/render_reports.R"); render_reports(data_file="data/test_data/report_data.csv", output_dir="data/test_data/out")'
+```
+
+The simulated records are internally consistent (age matches date of birth,
+regimens start after birth and after the national ART rollout, dates run in
+order) and cover a spread of sexes, ages including a paediatric case,
+specimen types, subtypes and viral loads. Output is **deterministic for a
+given `--seed`**, so a test run is reproducible.
+
+`--keep-map` also writes `header_map.csv` linking the test identifiers back
+to the original FASTA headers. Those headers may be real CTC IDs, so treat
+that file as patient data.
+
+### Testing interpretation only, without metadata
+
+Patient metadata is needed only to build a **report**. To check that
+sequences interpret correctly, run the interpretation step on its own — no
+`metadata.csv` required:
+
+```bash
+python3 tools/fasta_to_csv.py my_sequences.fasta --outdir data/test_data
+```
+
+Then read the results directly:
+
+| File | Shows |
+|---|---|
+| `resistanceSummaries.csv` | every drug's score and resistance level |
+| `sequenceSummaries.csv` | genes covered, coordinates, subtype |
+| `qc_report.csv` | per-sequence PASS/REVIEW and why |
+
+Add `--metadata-template` to also write a `metadata.csv` skeleton with the
+sequence names already filled in, so you can carry on to full reports
+without retyping CTC IDs. It will not overwrite a metadata file that
+already has details in it.
+
+`data/example/controls/validation_panel.fasta` is a ready-made six-sequence
+test file if you need one.
+
+Anything you put under `data/` is gitignored unless it is in
+`data/example/`, so a scratch folder of real sequences cannot be committed
+by accident.
+
 ### From a Stanford website export
 
 If the two CSVs were downloaded from the HIVdb website, place them in
@@ -157,6 +211,7 @@ docs/               SOP and validation protocol
 tests/smoke_test.R  regression suite, runs on the fixture
 tools/
   fasta_to_csv.py       FASTA -> local HIVdb -> CSVs (pipeline step)
+  make_test_data.py     renamed sequences + simulated metadata (testing)
   make_control_panel.py builds the validation panel  (build-time)
   make_reference_docx.py builds the Word styles      (build-time)
 reference/          the superseded original scripts, kept for comparison

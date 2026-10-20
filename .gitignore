@@ -1,21 +1,31 @@
 # ---------------------------------------------------------------------------
 # PATIENT DATA -- NEVER COMMIT
 #
-# Everything under data/raw and data/processed may contain identifiable
-# patient information (CTC IDs, dates of birth, viral loads). Only the
-# synthetic fixture in data/example/ is safe to track.
+# Deny by default: anything under data/ may hold identifiable patient
+# information (CTC IDs, dates of birth, viral loads, and the sequences
+# themselves). Only data/example/ -- synthetic fixtures and the HXB2-derived
+# control panel -- is safe to track.
+#
+# This is deliberately deny-by-default so that a NEW folder someone creates
+# under data/ is ignored automatically rather than being committable until
+# someone remembers to add it here.
 # ---------------------------------------------------------------------------
-# Use dir/* (not dir/) so the .gitkeep negations below can take effect --
-# git will not descend into a directory excluded as a whole.
+data/*
+!data/example
+!data/raw
+!data/processed
+
+# Within the two working folders, keep only the placeholders. Use dir/*
+# rather than dir/ so these negations can take effect -- git will not
+# descend into a directory excluded as a whole.
 data/raw/*
 data/processed/*
-output/*
-reference/quarto_training.xlsx
-
-# ...but keep the folder placeholders so the structure survives a clone
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+
+output/*
 !output/.gitkeep
+reference/quarto_training.xlsx
 
 # macOS
 .DS_Store

@@ -161,9 +161,20 @@ CCTCAGGTCACTCTTTGGCAACGACCCCTCGTCACAATAAAGATAGGGGGGCAACTAAAG
 
 ### 8.3 Prepare the metadata file
 
-Create or update `data/raw/metadata.csv`. Use
-`data/example/metadata.csv` as the template — it contains every supported
-column.
+Create or update `data/raw/metadata.csv`.
+
+The simplest and safest start is to let the interpretation step write the
+skeleton, which carries the sequence names across from the FASTA so the
+CTC IDs are never retyped:
+
+```bash
+python3 tools/fasta_to_csv.py data/raw/run.fasta --outdir data/raw \
+    --metadata-template
+```
+
+Then open `data/raw/metadata.csv` and complete the patient fields. A
+re-run will **not** overwrite details already entered.
+`data/example/metadata.csv` shows every supported column filled in.
 
 Required for every specimen (the run will abort without them):
 
