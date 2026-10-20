@@ -33,15 +33,29 @@ git status --short
 Python is **not** needed to run the pipeline. It is used only by
 `tools/make_reference_docx.py`, a one-off build step described below.
 
+## Start here
+
+**Setting up a machine, or sending this to someone to test?**
+See [`docs/INSTALL.md`](docs/INSTALL.md), then run:
+
+```bash
+Rscript tools/check_setup.R     # tells you what is missing, and how to fix it
+```
+
+**At the bench?** [`docs/JOB-AID.md`](docs/JOB-AID.md) is the one-page
+quick reference.
+
 ## Documents
 
-Routine use and validation are governed by two controlled documents, not by
+Routine use and validation are governed by controlled documents, not by
 this README:
 
 - [`docs/SOP-HIVDR-Report-Generation.md`](docs/SOP-HIVDR-Report-Generation.md)
   — SOP-HIVDR-001, the step-by-step operating procedure.
 - [`docs/VAL-HIVDR-001-Validation-Protocol.md`](docs/VAL-HIVDR-001-Validation-Protocol.md)
   — the validation protocol, with the control panel's expected results.
+- [`docs/JOB-AID.md`](docs/JOB-AID.md) — bench quick reference.
+- [`docs/INSTALL.md`](docs/INSTALL.md) — installation and sharing.
 
 **Both are drafts. The pipeline must not be used for patient reporting until
 the validation protocol has been executed and signed off.**
@@ -207,9 +221,10 @@ data/
   example/          synthetic fixture              (tracked)
     controls/       HXB2-derived validation panel  (tracked)
 output/             finished reports               (gitignored)
-docs/               SOP and validation protocol
+docs/               SOP, validation protocol, job aid, install guide
 tests/smoke_test.R  regression suite, runs on the fixture
 tools/
+  check_setup.R         verifies this machine can run the pipeline
   fasta_to_csv.py       FASTA -> local HIVdb -> CSVs (pipeline step)
   compare_concordance.py  local vs Stanford, drug by drug (validation)
   make_test_data.py     renamed sequences + simulated metadata (testing)

@@ -81,6 +81,51 @@ level_label <- function(code, cfg) {
   }
 }
 
+#' Candidate locations for a bundled or standalone Quarto installation.
+quarto_candidates <- function() {
+  exe <- if (.Platform$OS.type == "windows") "quarto.exe" else "quarto"
+  c(
+    # Standalone installs
+    file.path(c("/usr/local/bin", "/opt/homebrew/bin", "/opt/quarto/bin",
+                "/usr/bin", "/usr/lib/quarto/bin"), exe),
+    # Bundled with RStudio -- macOS, Windows, Linux
+    file.path("/Applications/RStudio.app/Contents/Resources/app/quarto/bin", exe),
+    file.path(c("C:/Program Files/RStudio/resources/app/quarto/bin",
+                "C:/Program Files/Quarto/bin",
+                "C:/Program Files/RStudio/bin/quarto/bin"), exe),
+    file.path(c("/usr/lib/rstudio/resources/app/quarto/bin",
+                "/usr/lib/rstudio-server/resources/app/quarto/bin"), exe)
+  )
+}
+
+
+#' Make sure the quarto command can be found.
+#'
+#' Quarto is usually installed as part of RStudio rather than on the system
+#' PATH, so a plain `Rscript` run cannot see it and every render fails. Look
+#' in the usual places and tell the quarto package where it is.
+#'
+#' @return TRUE if quarto is now locatable
+ensure_quarto <- function() {
+  found <- tryCatch(quarto::quarto_path(), error = function(e) NULL)
+  if (!is.null(found) && nzchar(found) && file.exists(found)) {
+    return(invisible(TRUE))
+  }
+  on_path <- unname(Sys.which("quarto"))
+  if (nzchar(on_path)) {
+    Sys.setenv(QUARTO_PATH = on_path)
+    return(invisible(TRUE))
+  }
+  for (candidate in quarto_candidates()) {
+    if (file.exists(candidate)) {
+      Sys.setenv(QUARTO_PATH = candidate)
+      return(invisible(TRUE))
+    }
+  }
+  invisible(FALSE)
+}
+
+
 #' Make sure flextable can find a pandoc to render Word tables with.
 #'
 #' Quarto keeps its pandoc inside its own installation rather than on PATH,
@@ -93,10 +138,12 @@ ensure_pandoc <- function() {
     return(invisible(TRUE))
   }
 
+  ensure_quarto()
   quarto_bin <- tryCatch(quarto::quarto_path(), error = function(e) NULL)
   if (is.null(quarto_bin) || !nzchar(quarto_bin)) {
-    quarto_bin <- unname(Sys.which("quarto"))
+    quarto_bin <- Sys.getenv("QUARTO_PATH", unset = "")
   }
+  if (!nzchar(quarto_bin)) quarto_bin <- unname(Sys.which("quarto"))
   if (!nzchar(quarto_bin)) return(invisible(FALSE))
 
   candidates <- Sys.glob(file.path(dirname(quarto_bin), "tools", "*", "pandoc"))

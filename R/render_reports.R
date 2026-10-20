@@ -16,9 +16,17 @@ suppressPackageStartupMessages({
 
 invisible(suppressWarnings(Sys.setlocale("LC_CTYPE", "en_US.UTF-8")))
 
-# Resolve pandoc here so the setting is inherited by the render process that
-# Quarto spawns; without it flextable cannot draw the drug tables.
+# Locate Quarto and pandoc here, so the settings are inherited by the render
+# process Quarto spawns. Quarto usually ships inside RStudio rather than on
+# the system PATH, so a plain Rscript run would otherwise fail outright, and
+# flextable could not draw the drug tables.
 source(file.path("R", "report_helpers.R"))
+if (!isTRUE(ensure_quarto())) {
+  stop("Quarto not found. Install Quarto (https://quarto.org/docs/get-started/)",
+       " or RStudio, or set QUARTO_PATH to the quarto executable.\n",
+       "Run  Rscript tools/check_setup.R  to see what is missing.",
+       call. = FALSE)
+}
 invisible(ensure_pandoc())
 
 TEMPLATE  <- file.path("templates", "ctlc-report.qmd")

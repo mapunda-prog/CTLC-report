@@ -143,10 +143,13 @@ Record on the run worksheet (Annex A):
 Confirm the software is healthy before processing patient data:
 
 ```bash
-Rscript tests/smoke_test.R
+Rscript tools/check_setup.R      # must report READY
+Rscript tests/smoke_test.R       # all checks must pass
 ```
 
-**All checks must pass.** If any check fails, stop and refer to §10.
+**If either fails, stop and refer to §10.** Installation problems are
+covered in `docs/INSTALL.md`; `docs/JOB-AID.md` is the bench summary of
+this procedure.
 
 ### 8.2 Prepare the sequence file
 
